@@ -1,55 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Exam Result - {{ course.name }}</title>
+    <style>
+        .result-card { margin-bottom: 1rem; }
+        .choice-line { padding: .35rem .5rem; border-radius: .25rem; }
+    </style>
 </head>
 <body>
 
- <nav class="navbar navbar-light bg-light">
+<nav class="navbar navbar-light bg-light">
     <div class="container-fluid">
-        <div class="navbar-header">
-              <a class="navbar-brand" href="{% url 'onlinecourse:index' %}">Home</a>
-        </div>
-        <ul class="nav navbar-nav navbar-right">
+        <a class="navbar-brand" href="{% url 'onlinecourse:index' %}">Home</a>
+        <div class="d-flex">
             {% if user.is_authenticated %}
-            <li>
-                <a class="btn btn-link" href="#">{{ user.first_name }}({{ user.username }})</a>
-                <a class="btn btn-link" href="{% url 'onlinecourse:logout' %}">Logout</a>
-            </li>
+                <span class="navbar-text mr-3">{{ user.first_name }} ({{ user.username }})</span>
+                <a class="btn btn-outline-secondary btn-sm" href="{% url 'onlinecourse:logout' %}">Logout</a>
             {% else %}
-            <li>
-                <form class="form-inline" action="{% url 'onlinecourse:login' %}" method="post">
-                    {% csrf_token %}
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Username" name="username" >
-                        <input type="password" class="form-control" placeholder="Username" name="psw" >
-                        <button class="btn btn-primary" type="submit">Login</button>
-                        <a class="btn btn-link" href="{% url 'onlinecourse:registration' %}">Sign Up</a>
-                    </div>
-                </form>
-            </li>
+                <a class="btn btn-outline-primary btn-sm" href="{% url 'onlinecourse:login' %}">Login</a>
             {% endif %}
-        </ul>
+        </div>
     </div>
 </nav>
 
-<div class="container-fluid">
-    {% if grade > 80 %}
-    <div class="alert alert-success">
-       <!--HINT Display passed info -->
-    </div>
-        {% else %}
-        <div class="alert alert-danger">
-            <!--HINT Display failed info -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h3>Exam results — {{ course.name }}</h3>
+
+            {% if grade >= 80 %}
+            <div class="alert alert-success" role="alert">
+                <strong>Congratulations, {{ user.first_name }}!</strong>
+                You have passed the exam and completed the course with score {{ grade|floatformat:2 }}/100
+            </div>
+            {% else %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Failed</strong>
+                Sorry, {{ user.first_name }}! You have failed the exam with score {{ grade|floatformat:2 }}/100
+            </div>
+            <div class="mb-3">
+                <a class="btn btn-outline-danger" href="{% url 'onlinecourse:course_details' course.id %}">Retake Exam</a>
+            </div>
+            {% endif %}
+
+            <div class="card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Total score:</strong> {{ total_score }} / {{ max_score }}
+                    </div>
+                    <div>
+                        <strong>Percentage:</strong> {{ grade|floatformat:2 }}%
+                    </div>
+                </div>
+            </div>
+
+            <h5>Question details</h5>
+            {% for qr in question_results %}
+            <div class="card result-card">
+                <div class="card-header">
+                    <strong>Question {{ forloop.counter }}:</strong> {{ qr.question.content }}
+                    {% if qr.is_correct %}
+                        <span class="badge badge-success float-right">Correct ({{ qr.question.grade }} pts)</span>
+                    {% else %}
+                        <span class="badge badge-danger float-right">Incorrect (0 / {{ qr.question.grade }} pts)</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% for choice in qr.question.choice_set.all %}
+                        {% if choice.is_correct and choice.id in qr.selected_ids %}
+                            <div class="choice-line bg-success text-white">Correct answer: {{ choice.content }}</div>
+                        {% elif choice.is_correct and not choice.id in qr.selected_ids %}
+                            <div class="choice-line bg-warning text-dark">Not selected: {{ choice.content }}</div>
+                        {% elif not choice.is_correct and choice.id in qr.selected_ids %}
+                            <div class="choice-line bg-danger text-white">Wrong answer: {{ choice.content }}</div>
+                        {% else %}
+                            <div class="choice-line">{{ choice.content }}</div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
         </div>
-        <a class="btn btn-link text-danger" href="{% url 'onlinecourse:course_details' course.id %}">Re-test</a>
-        {% endif %}
-        <div class="card-columns-vertical mt-1">
-        <h5 class="">Exam results</h5>
-            <!--HINT Display exam results-->
-        </div>
     </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
